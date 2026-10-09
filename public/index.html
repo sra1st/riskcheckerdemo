@@ -21,8 +21,8 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); }
-  body { min-height: 100vh; display: flex; flex-direction: column; }
-  .wrap { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  .wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 16px; }
 
   header { border-bottom: 1px solid var(--line); }
   header .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
@@ -33,14 +33,15 @@
     padding: 4px 10px; border-radius: 999px;
   }
 
-  main { flex: 1; padding: 40px 0 56px; }
-  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 12px; }
-  .lede { color: var(--muted); font-size: 17px; line-height: 1.5; margin: 0 0 28px; max-width: 56ch; }
+  main { flex: 1; display: flex; align-items: center; padding: 24px 0; }
+  main > .wrap { margin: auto; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 10px; text-align: center; }
+  .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin: 0 auto 22px; max-width: 56ch; text-align: center; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   textarea {
-    width: 100%; min-height: 150px; resize: vertical; padding: 12px 14px;
+    width: 100%; min-height: 110px; resize: vertical; padding: 12px 14px;
     background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
     font: 16px/1.5 var(--sans);
   }
@@ -63,7 +64,12 @@
   .go:hover { filter: brightness(1.06); }
   .go:disabled { opacity: .55; cursor: progress; }
 
-  #out { margin-top: 20px; }
+  .grid { display: grid; gap: 16px; }
+  #out { display: flex; flex-direction: column; }
+  #out > .card, #out > .notice { flex: 1; }
+  .placeholder { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 15px; text-align: center; border-style: dashed; min-height: 120px; }
+  @media (min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; align-items: stretch; } textarea { min-height: 130px; } }
+  @media (min-width: 900px) and (max-height: 760px) { .lede { display: none; } h1 { font-size: 28px; margin-bottom: 16px; } main { padding: 12px 0; } textarea { min-height: 100px; } .note { margin-top: 10px; } .left { margin-top: 8px; } }
   .result { display: grid; gap: 14px; }
   .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .pill {
@@ -83,17 +89,18 @@
   .notice.lim { color: #ffe3b3; background: color-mix(in srgb, var(--med) 12%, transparent); border-color: color-mix(in srgb, var(--med) 45%, transparent); }
   .notice b { display: block; margin-bottom: 2px; }
 
-  .left { margin-top: 14px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-  .note { margin-top: 24px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .left { margin-top: 12px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .note { margin-top: 16px; text-align: center; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
   footer { border-top: 1px solid var(--line); padding: 18px 0; color: var(--muted); font-size: 13px; }
-  footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  footer .wrap { display: flex; justify-content: center; gap: 8px 14px; flex-wrap: wrap; text-align: center; }
+  footer .sep { opacity: .5; }
 </style>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <span class="brand">Message Risk Checker</span>
+    <span class="brand">riskcheckerdemo</span>
     <span class="badge">Sample demo</span>
   </div>
 </header>
@@ -103,6 +110,7 @@
     <h1>Paste a message. Get a risk check.</h1>
     <p class="lede">A small example of an AI feature inside a web app: it summarises a message, reads the tone, and flags phishing signs, pasted secrets, and personal data.</p>
 
+    <div class="grid">
     <form class="card" id="form">
       <label for="msg">Message to check</label>
       <textarea id="msg" maxlength="1200" placeholder="Paste a customer email or chat message here…"></textarea>
@@ -117,7 +125,8 @@
       </div>
     </form>
 
-    <div id="out" aria-live="polite"></div>
+    <div id="out" aria-live="polite"><div class="card placeholder">Your result will appear here.</div></div>
+    </div>
     <div class="left" id="left"></div>
 
     <p class="note">Sample demo for portfolio purposes, not a client project. Messages are sent to my server, analysed, and not stored. Please don't paste real passwords or personal data.</p>
@@ -126,7 +135,8 @@
 
 <footer>
   <div class="wrap">
-    <span>Sample demo · built as a portfolio example</span>
+    <span>Sample demo</span><span class="sep">|</span>
+    <span>built as a portfolio example</span><span class="sep">|</span>
     <span>The API key stays on the server.</span>
   </div>
 </footer>
