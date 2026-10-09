@@ -92,6 +92,29 @@
   .left { margin-top: 12px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
   .note { margin-top: 16px; text-align: center; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
+  #out { scroll-margin-top: 12px; scroll-margin-bottom: 96px; }
+  .flags li { flex-wrap: wrap; gap: 4px 10px; }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 14px; }
+    header .wrap { height: 52px; }
+    main { align-items: flex-start; padding: 16px 0 8px; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    .lede { font-size: 15px; margin-bottom: 16px; }
+    .card { padding: 14px; }
+    textarea { min-height: 120px; }
+    .pre { display: none; }
+    .samples { gap: 6px; flex-wrap: wrap; }
+    .chip { font-size: 12.5px; padding: 7px 10px; }
+    .row { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+    .count { text-align: right; }
+    .go { width: 100%; padding: 14px 20px; font-size: 16px; }
+    .placeholder { min-height: 72px; }
+    .summary { font-size: 17px; }
+    .note { font-size: 12.5px; }
+    footer .wrap { flex-direction: column; align-items: center; gap: 4px; }
+    footer .sep { display: none; }
+    footer { padding: 16px 0 88px; } /* room for the hosting badge the platform injects bottom-right */
+  }
   footer { border-top: 1px solid var(--line); padding: 18px 0; color: var(--muted); font-size: 13px; }
   footer .wrap { display: flex; justify-content: center; gap: 8px 14px; flex-wrap: wrap; text-align: center; }
   footer .sep { opacity: .5; }
@@ -115,9 +138,9 @@
       <label for="msg">Message to check</label>
       <textarea id="msg" maxlength="1200" placeholder="Paste a customer email or chat message here…"></textarea>
       <div class="samples" aria-label="Sample messages">
-        <button type="button" class="chip" data-s="phish">Sample: suspicious email</button>
-        <button type="button" class="chip" data-s="secret">Sample: pasted secret</button>
-        <button type="button" class="chip" data-s="ok">Sample: normal message</button>
+        <button type="button" class="chip" data-s="phish"><span class="pre">Sample: </span>Suspicious email</button>
+        <button type="button" class="chip" data-s="secret"><span class="pre">Sample: </span>Pasted secret</button>
+        <button type="button" class="chip" data-s="ok"><span class="pre">Sample: </span>Normal message</button>
       </div>
       <div class="row">
         <span class="count" id="count">0 / 1000</span>
@@ -164,6 +187,11 @@
   }
   msg.addEventListener("input", update);
 
+  const reveal = () => {
+    if (window.matchMedia("(max-width: 899px)").matches) {
+      try { out.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch { out.scrollIntoView(); }
+    }
+  };
   const el = (tag, cls, text) => {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -176,6 +204,7 @@
     const n = el("div", `notice ${kind}`);
     n.append(el("b", "", title), document.createTextNode(text));
     out.append(n);
+    reveal();
   }
 
   function typeInto(node, text, speed = 14) {
@@ -196,6 +225,7 @@
     const sum = el("p", "summary");
     box.append(top, sum);
     out.append(box);
+    reveal();
     await typeInto(sum, r.summary);
     if (r.flags.length) {
       const ul = el("ul", "flags");
@@ -208,6 +238,7 @@
     } else {
       box.append(el("div", "none", "No risk flags found."));
     }
+    reveal();
   }
 
   $("form").addEventListener("submit", async (e) => {
@@ -217,7 +248,8 @@
     if (text.length > MAX) return notice("err", "Message too long", `Please keep it under ${MAX} characters.`);
 
     go.disabled = true; go.textContent = "Checking…";
-    out.replaceChildren();
+    out.replaceChildren(el("div", "card placeholder", "Checking…"));
+    reveal();
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
