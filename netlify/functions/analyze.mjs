@@ -5,8 +5,8 @@ export const config = { path: "/api/analyze" };
 
 const cfg = () => ({
   apiKey: process.env.LLM_API_KEY,
-  model: process.env.LLM_MODEL || "claude-haiku-5-5",
-  apiUrl: process.env.LLM_API_URL || "https://api.anthropic.com/v1/messages",
+  model: process.env.LLM_MODEL || "gemini-3.5-flash-lite",
+  apiUrl: process.env.LLM_API_URL || "",
   perIp: int("LIMIT_PER_IP", 5),
   windowMs: int("LIMIT_WINDOW_MIN", 60) * 60_000,
   dailyCap: int("DAILY_CAP", 200),
@@ -114,19 +114,24 @@ async function callLlm(message, c) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), c.timeoutMs);
   try {
-    const res = await fetch(c.apiUrl, {
+    const url =
+      c.apiUrl ||
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent`;
+    const res = await fetch(url, {
       method: "POST",
       signal: ctrl.signal,
       headers: {
         "content-type": "application/json",
-        "x-api-key": c.apiKey,
-        "anthropic-version": "2023-06-01",
+        "x-goog-api-key": c.apiKey,
       },
       body: JSON.stringify({
-        model: c.model,
-        max_tokens: 400,
-        system: SYSTEM,
-        messages: [{ role: "user", content: `<message>\n${message}\n</message>` }],
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ role: "user", parts: [{ text: `<message>\n${message}\n</message>` }] }],
+        generationConfig: {
+          maxOutputTokens: 1024, // headroom in case the model spends tokens thinking
+          temperature: 0,
+          responseMimeType: "application/json",
+        },
       }),
     });
     if (!res.ok) {
@@ -135,7 +140,8 @@ async function callLlm(message, c) {
       throw e;
     }
     const data = await res.json();
-    const text = (data.content || []).map((b) => b.text || "").join("");
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const text = parts.map((p) => p.text || "").join("");
     return parseResult(text);
   } finally {
     clearTimeout(timer);
