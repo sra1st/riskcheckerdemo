@@ -1,0 +1,12 @@
+{
+  "name": "risk-checker-sample-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sample demo: Message Risk Checker (static page + Netlify Function)",
+  "scripts": {
+    "dev": "netlify dev",
+    "test": "node test/test.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

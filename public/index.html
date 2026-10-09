@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Message Risk Checker – Sample demo</title>
+<meta name="description" content="Sample demo: paste a message and get a summary, tone, and risk flags.">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --panel: #151920;
+    --line: #262c36;
+    --text: #e8ecf1;
+    --muted: #8b95a5;
+    --accent: #ffb547;
+    --low: #4cd6a0;
+    --med: #ffb547;
+    --high: #ff6b6b;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  .wrap { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+  header { border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .brand { font-weight: 650; letter-spacing: -0.01em; }
+  .badge {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    padding: 4px 10px; border-radius: 999px;
+  }
+
+  main { flex: 1; padding: 40px 0 56px; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 12px; }
+  .lede { color: var(--muted); font-size: 17px; line-height: 1.5; margin: 0 0 28px; max-width: 56ch; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical; padding: 12px 14px;
+    background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    font: 16px/1.5 var(--sans);
+  }
+  textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .count.over { color: var(--high); }
+
+  .samples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .chip {
+    background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; font: 13px var(--sans); cursor: pointer;
+  }
+  .chip:hover { color: var(--text); border-color: var(--muted); }
+
+  .go {
+    background: var(--accent); color: #1a1205; border: 0; border-radius: 10px;
+    padding: 11px 20px; font: 600 15px var(--sans); cursor: pointer; min-width: 150px;
+  }
+  .go:hover { filter: brightness(1.06); }
+  .go:disabled { opacity: .55; cursor: progress; }
+
+  #out { margin-top: 20px; }
+  .result { display: grid; gap: 14px; }
+  .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill {
+    font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor;
+  }
+  .pill.low { color: var(--low); } .pill.medium { color: var(--med); } .pill.high { color: var(--high); }
+  .tone { color: var(--muted); font-size: 14px; }
+  .summary { font-size: 18px; line-height: 1.45; margin: 0; min-height: 1.45em; }
+  .flags { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .flags li { display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-size: 15px; }
+  .flags .t { font-family: var(--mono); font-size: 12px; color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+  .none { color: var(--low); font-size: 15px; }
+
+  .notice { border-radius: 10px; padding: 14px 16px; font-size: 16px; line-height: 1.45; border: 1px solid; }
+  .notice.err { color: #ffd0d0; background: color-mix(in srgb, var(--high) 12%, transparent); border-color: color-mix(in srgb, var(--high) 45%, transparent); }
+  .notice.lim { color: #ffe3b3; background: color-mix(in srgb, var(--med) 12%, transparent); border-color: color-mix(in srgb, var(--med) 45%, transparent); }
+  .notice b { display: block; margin-bottom: 2px; }
+
+  .left { margin-top: 14px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .note { margin-top: 24px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  footer { border-top: 1px solid var(--line); padding: 18px 0; color: var(--muted); font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="brand">Message Risk Checker</span>
+    <span class="badge">Sample demo</span>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Paste a message. Get a risk check.</h1>
+    <p class="lede">A small example of an AI feature inside a web app: it summarises a message, reads the tone, and flags phishing signs, pasted secrets, and personal data.</p>
+
+    <form class="card" id="form">
+      <label for="msg">Message to check</label>
+      <textarea id="msg" maxlength="1200" placeholder="Paste a customer email or chat message here…"></textarea>
+      <div class="samples" aria-label="Sample messages">
+        <button type="button" class="chip" data-s="phish">Sample: suspicious email</button>
+        <button type="button" class="chip" data-s="secret">Sample: pasted secret</button>
+        <button type="button" class="chip" data-s="ok">Sample: normal message</button>
+      </div>
+      <div class="row">
+        <span class="count" id="count">0 / 1000</span>
+        <button class="go" id="go" type="submit">Check message</button>
+      </div>
+    </form>
+
+    <div id="out" aria-live="polite"></div>
+    <div class="left" id="left"></div>
+
+    <p class="note">Sample demo for portfolio purposes, not a client project. Messages are sent to my server, analysed, and not stored. Please don't paste real passwords or personal data.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Sample demo · built as a portfolio example</span>
+    <span>The API key stays on the server.</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const MAX = 1000;
+  const $ = (id) => document.getElementById(id);
+  const msg = $("msg"), out = $("out"), go = $("go"), left = $("left"), count = $("count");
+  const demo = new URLSearchParams(location.search).get("demo"); // ?demo=error | ?demo=limit
+
+  const SAMPLES = {
+    phish: "URGENT: Your account will be suspended in 24 hours. Verify your identity now at http://secure-login-support.example-verify.top/account and reply with your password and the code we texted you to avoid permanent closure.",
+    secret: "Hey, the deploy keeps failing. Here's the config I'm using, can you check it? DB_URL=postgres://admin:Sup3rS3cret!@db.internal:5432/app and API_KEY=demo_9f3a1c7e52b84d06a1e7",
+    ok: "Hi team, just confirming that the design review is moved to Thursday at 2pm. Please bring your notes from last sprint. Thanks, Maya",
+  };
+  document.querySelectorAll(".chip").forEach((b) =>
+    b.addEventListener("click", () => { msg.value = SAMPLES[b.dataset.s]; update(); msg.focus(); })
+  );
+
+  function update() {
+    const n = msg.value.length;
+    count.textContent = `${n} / ${MAX}`;
+    count.classList.toggle("over", n > MAX);
+  }
+  msg.addEventListener("input", update);
+
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  function notice(kind, title, text) {
+    out.replaceChildren();
+    const n = el("div", `notice ${kind}`);
+    n.append(el("b", "", title), document.createTextNode(text));
+    out.append(n);
+  }
+
+  function typeInto(node, text, speed = 14) {
+    return new Promise((res) => {
+      let i = 0;
+      const t = setInterval(() => {
+        node.textContent = text.slice(0, ++i);
+        if (i >= text.length) { clearInterval(t); res(); }
+      }, speed);
+    });
+  }
+
+  async function render(r) {
+    out.replaceChildren();
+    const box = el("div", "card result");
+    const top = el("div", "top");
+    top.append(el("span", `pill ${r.risk}`, `${r.risk} risk`), el("span", "tone", `Tone: ${r.tone}`));
+    const sum = el("p", "summary");
+    box.append(top, sum);
+    out.append(box);
+    await typeInto(sum, r.summary);
+    if (r.flags.length) {
+      const ul = el("ul", "flags");
+      r.flags.forEach((f) => {
+        const li = el("li");
+        li.append(el("span", "t", f.type.replace("_", " ")), el("span", "", f.detail));
+        ul.append(li);
+      });
+      box.append(ul);
+    } else {
+      box.append(el("div", "none", "No risk flags found."));
+    }
+  }
+
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = msg.value.trim();
+    if (!text) return notice("err", "Nothing to check", "Please paste a message first.");
+    if (text.length > MAX) return notice("err", "Message too long", `Please keep it under ${MAX} characters.`);
+
+    go.disabled = true; go.textContent = "Checking…";
+    out.replaceChildren();
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: text, demo }),
+      });
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (res.ok && data?.ok) {
+        await render(data.result);
+      } else if (data?.error === "limit" || data?.error === "daily") {
+        notice("lim", "Usage limit reached", data.message);
+      } else {
+        notice("err", "Couldn't complete the check", data?.message || "Something went wrong. Please try again.");
+      }
+      if (typeof data?.remaining === "number" && data?.limit) {
+        left.textContent = `Free tries left: ${data.remaining} of ${data.limit}`;
+      } else if (data?.error === "limit") {
+        left.textContent = "Free tries left: 0";
+      }
+    } catch {
+      notice("err", "Couldn't reach the server", "Please check your connection and try again.");
+    } finally {
+      go.disabled = false; go.textContent = "Check message";
+    }
+  });
+})();
+</script>
+</body>
+</html>
